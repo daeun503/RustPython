@@ -775,13 +775,15 @@ impl ExecutingFrame<'_> {
             }
             bytecode::Instruction::SetupWith { end } => {
                 let context_manager = self.pop_value();
-                let exit = context_manager.get_attr(identifier!(vm, __exit__), vm)?;
-                self.push_value(exit);
-                // Call enter:
-                let enter_res =
-                    vm.call_special_method(context_manager, identifier!(vm, __enter__), ())?;
-                self.push_block(BlockType::Finally { handler: *end });
-                self.push_value(enter_res);
+                if !context_manager.has_attr(identifier!(vm, __enter__), vm)? {
+                    let exit = context_manager.get_attr(identifier!(vm, __exit__), vm)?;
+                    self.push_value(exit);
+                    // Call enter:
+                    let enter_res =
+                        vm.call_special_method(context_manager, identifier!(vm, __enter__), ())?;
+                    self.push_block(BlockType::Finally { handler: *end });
+                    self.push_value(enter_res);
+                }
                 Ok(None)
             }
             bytecode::Instruction::BeforeAsyncWith => {
